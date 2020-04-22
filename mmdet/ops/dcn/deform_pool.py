@@ -4,7 +4,10 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
-from . import deform_pool_cuda
+try:
+    from . import deform_pool_cuda
+except ImportError:
+    print('Unable to import `deform_pool_cuda`')
 
 
 class DeformRoIPoolingFunction(Function):

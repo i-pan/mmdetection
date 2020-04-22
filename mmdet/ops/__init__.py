@@ -16,7 +16,10 @@ from .roi_pool import RoIPool, roi_pool
 from .scale import Scale
 from .sigmoid_focal_loss import SigmoidFocalLoss, sigmoid_focal_loss
 from .upsample import build_upsample_layer
-from .utils import get_compiler_version, get_compiling_cuda_version
+try:
+  from .utils import get_compiler_version, get_compiling_cuda_version
+except ImportError:
+  print('Unable to import `get_compiler_version, get_compiling_cuda_version`')
 
 __all__ = [
     'nms', 'soft_nms', 'RoIAlign', 'roi_align', 'RoIPool', 'roi_pool',

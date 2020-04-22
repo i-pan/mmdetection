@@ -5,7 +5,10 @@ from mmcv.cnn import normal_init, xavier_init
 from torch.autograd import Function
 from torch.nn.modules.module import Module
 
-from . import carafe_cuda, carafe_naive_cuda
+try:
+    from . import carafe_cuda, carafe_naive_cuda
+except ImportError:
+    print('Unable to import `carafe_cuda, carafe_naive_cuda`')
 
 
 class CARAFENaiveFunction(Function):

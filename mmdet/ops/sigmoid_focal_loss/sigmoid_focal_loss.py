@@ -2,7 +2,13 @@ import torch.nn as nn
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 
-from . import sigmoid_focal_loss_cuda
+try:
+    from . import sigmoid_focal_loss_cuda
+    CUDA_EXT = True
+except ImportError:
+    CUDA_EXT = False
+    print('Unable to import `sigmoid_focal_loss_cuda`')
+    print('>>Using torch-based `sigmoid_focal_loss` ...')
 
 
 class SigmoidFocalLossFunction(Function):
@@ -32,7 +38,23 @@ class SigmoidFocalLossFunction(Function):
         return d_input, None, None, None, None
 
 
-sigmoid_focal_loss = SigmoidFocalLossFunction.apply
+if CUDA_EXT:
+    sigmoid_focal_loss = SigmoidFocalLossFunction.apply
+else:
+    import torch.nn.functional as F
+    def sigmoid_focal_loss(pred,
+                           target,
+                           gamma=2.0,
+                           alpha=0.25):
+        pred_sigmoid = pred.sigmoid()
+        # one-hot encode, then get rid of background class with [:,1:]
+        target = F.one_hot(target.long(), pred.shape[-1]+1)[:,1:].type_as(pred)
+        pt = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target)
+        focal_weight = (alpha * target + (1 - alpha) *
+                        (1 - target)) * pt.pow(gamma)
+        loss = F.binary_cross_entropy_with_logits(
+            pred, target, reduction='none') * focal_weight
+        return loss
 
 
 # TODO: remove this module

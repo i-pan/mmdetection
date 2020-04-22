@@ -1,7 +1,14 @@
 import numpy as np
 import torch
+import torchvision
 
-from . import nms_cpu, nms_cuda
+try:
+    from . import nms_cpu, nms_cuda
+    CUDA_EXT = True
+except ImportError:
+    CUDA_EXT = False 
+    print('Unable to import `nms_cpu, nms_cuda`')
+    print('>>Using `torchvision.ops.nms` ...')
 
 
 def nms(dets, iou_thr, device_id=None):
@@ -50,10 +57,14 @@ def nms(dets, iou_thr, device_id=None):
     if dets_th.shape[0] == 0:
         inds = dets_th.new_zeros(0, dtype=torch.long)
     else:
-        if dets_th.is_cuda:
-            inds = nms_cuda.nms(dets_th, iou_thr)
+        if CUDA_EXT:
+            if dets_th.is_cuda:
+                inds = nms_cuda.nms(dets_th, iou_thr)
+            else:
+                inds = nms_cpu.nms(dets_th, iou_thr)
         else:
-            inds = nms_cpu.nms(dets_th, iou_thr)
+            # use native torchvision NMS if not compiled w/ CUDA
+            inds = torchvision.ops.nms(boxes=dets[:,:4], scores=dets[:,4], iou_threshold=iou_thr)
 
     if is_numpy:
         inds = inds.cpu().numpy()

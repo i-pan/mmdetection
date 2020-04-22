@@ -4,7 +4,13 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
-from . import roi_pool_cuda
+try:
+    from . import roi_pool_cuda
+    CUDA_EXT = True
+except:
+    CUDA_EXT = False
+    print('Unable to import `roi_pool_cuda`')
+    print('>>Using `torchvision.ops.roi_pool` ...')
 
 
 class RoIPoolFunction(Function):
@@ -57,7 +63,7 @@ class RoIPool(nn.Module):
 
         self.out_size = _pair(out_size)
         self.spatial_scale = float(spatial_scale)
-        self.use_torchvision = use_torchvision
+        self.use_torchvision = use_torchvision if CUDA_EXT else True
 
     def forward(self, features, rois):
         if self.use_torchvision:

@@ -6,7 +6,10 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
-from . import masked_conv2d_cuda
+try:
+    from . import masked_conv2d_cuda
+except ImportError:
+    print('Unable to import `masked_conv2d_cuda`')
 
 
 class MaskedConv2dFunction(Function):

@@ -3,8 +3,13 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
-from . import roi_align_cuda
-
+try:
+    from . import roi_align_cuda
+    CUDA_EXT = True
+except ImportError:
+    CUDA_EXT = False
+    print('Unable to import `roi_align_cuda`')
+    print('>>Using `torchvision.ops.roi_align` ...')
 
 class RoIAlignFunction(Function):
 
@@ -122,9 +127,9 @@ class RoIAlign(nn.Module):
         self.spatial_scale = float(spatial_scale)
         self.aligned = aligned
         self.sample_num = int(sample_num)
-        self.use_torchvision = use_torchvision
+        self.use_torchvision = use_torchvision if CUDA_EXT else True
         assert not (use_torchvision and
-                    aligned), 'Torchvision does not support aligned RoIAlgin'
+                    aligned), 'Torchvision does not support aligned RoIAlign'
 
     def forward(self, features, rois):
         """
