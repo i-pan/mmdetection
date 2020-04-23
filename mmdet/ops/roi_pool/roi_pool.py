@@ -7,7 +7,7 @@ from torch.nn.modules.utils import _pair
 try:
     from . import roi_pool_cuda
     CUDA_EXT = True
-except:
+except ImportError:
     CUDA_EXT = False
     print('Unable to import `roi_pool_cuda`')
     print('>>Using `torchvision.ops.roi_pool` ...')
