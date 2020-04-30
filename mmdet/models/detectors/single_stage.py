@@ -6,6 +6,24 @@ from ..registry import DETECTORS
 from .base import BaseDetector
 
 
+class Classifier(nn.Module):
+
+    def __init__(self,
+                 dim_feats,
+                 dropout,
+                 num_classes,
+                 loss):
+        self.dropout = None if dropout == 0 else nn.Dropout(p=dropout)
+        self.fc = nn.Linear(dim_feats, num_classes)
+        loss_type = loss.pop('type')
+        self.loss = getattr(nn, loss_type)(**loss)
+
+    def forward(self, x):
+        if self.dropout: 
+            x = self.dropout(x)
+        return self.fc(x)
+
+
 @DETECTORS.register_module
 class SingleStageDetector(BaseDetector):
     """Base class for single-stage detectors.
@@ -20,7 +38,8 @@ class SingleStageDetector(BaseDetector):
                  bbox_head=None,
                  train_cfg=None,
                  test_cfg=None,
-                 pretrained=None):
+                 pretrained=None,
+                 cls_head=None):
         super(SingleStageDetector, self).__init__()
         self.backbone = builder.build_backbone(backbone)
         if neck is not None:
@@ -29,6 +48,9 @@ class SingleStageDetector(BaseDetector):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
         self.init_weights(pretrained=pretrained)
+        if cls_head is not None:
+            self.cls_head = Classifier(**cls_head)
+
 
     def init_weights(self, pretrained=None):
         super(SingleStageDetector, self).init_weights(pretrained)
@@ -69,6 +91,10 @@ class SingleStageDetector(BaseDetector):
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
         losses = self.bbox_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
+        if hasattr(self, 'cls_head'):
+            cls_out = self.cls_head(x)
+            cls_loss = self.cls_head.loss(cls_out, gt_cls)
+            losses['cls_loss'] = cls_loss
         return losses
 
     def simple_test(self, img, img_metas, rescale=False):
